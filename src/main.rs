@@ -13,7 +13,58 @@ slint::slint! {
         description: string,
     }
 
+    component ListItemPanel inherits Rectangle {
+        in-out property <bool>   completed;
+        in property     <string> description;
+        in property     <int>    id;
+
+        padding: 5px;
+
+        Rectangle {
+            height: 92%;
+            background: AppConfig.color_primary.darker(37%);
+            border-radius: 5px;
+            border-color:  AppConfig.color_tertiary;
+            border-width:  1px;
+            drop-shadow-blur:     touch-area.has-hover ? 10px : 3px;
+            drop-shadow-color:    touch-area.has-hover ? AppConfig.color_primary.darker(87%) : AppConfig.color_primary.darker(50%);
+            drop-shadow-offset-y: touch-area.has-hover ? 5px : 1px;
+            animate drop-shadow-blur {
+                duration: 100ms;
+                easing: ease-out;
+            }
+
+            touch-area := TouchArea {}
+
+            HorizontalBox {
+                CheckBox {
+                    checked <=> completed;
+                    toggled => { AppLogic.dump_list_items() }
+                }
+                Text {
+                    text: description;
+                    font-size: AppConfig.font-size;
+                    color: AppConfig.color_secondary;
+                    horizontal-alignment: left;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+                Button {
+                    text: "-";
+                    width: 30px;
+                    clicked => {
+                        AppLogic.pop_list_item(id);
+                        AppLogic.dump_list_items();
+                    }
+                }
+            }
+        }
+    }
+
     export global AppConfig {
+        out property    <color>      color_primary:   grey;
+        out property    <color>      color_secondary: lightgrey;
+        out property    <color>      color_tertiary:  #75abe6;
         out property    <length>     font-size: 14px;
         out property    <string>     data_path: ".todo.dat";
         in-out property <[ListItem]> list-items: [];
@@ -26,124 +77,89 @@ slint::slint! {
         callback put_list_item(int, ListItem);
     }
 
+    component FormPanel inherits Rectangle {
+        background: AppConfig.color_primary;
+        border-bottom-left-radius:  5px;
+        border-bottom-right-radius: 5px;
+        height: AppConfig.font-size + (AppConfig.font-size * 300%);
+
+        todo-form := HorizontalBox {
+            callback create_new_item();
+
+            add_button := Button {
+                text: "+";
+                width: self.height;
+                // Only allow users to add a new item
+                // if the text input is not empty.
+                enabled: txt-desc.text != "";
+                clicked => { create_new_item(); }
+            }
+            txt_desc := Rectangle {
+                in-out property <string> text;
+                background: white;
+
+                border-radius: 5px;
+                border-color: AppConfig.color_tertiary;
+                border-width: 2px;
+
+                input := TextInput {
+                    color: AppConfig.color_primary;
+                    font-size: AppConfig.font-size;
+                    padding-right: 20px;
+                    text <=> parent.text;
+                    vertical-alignment: center;
+
+                    x: parent.x - 50px;
+                    width: parent.width - 12px;
+                }
+
+                placeholder := Text {
+                    color: AppConfig.color_secondary;
+                    text: "Add a new TODO";
+                    vertical-alignment: center;
+                    visible: input.text == "";
+                    x: parent.x - 50px;
+                }
+            }
+
+            create_new_item => {
+                if (txt-desc.text != "") {
+                    AppLogic.put_list_item(0, {completed: false, description: txt-desc.text });
+                    txt-desc.text = "";
+                    AppLogic.dump_list_items();
+                }
+            }
+        }
+    }
+
+    component ItemPanel inherits Rectangle {
+        background: AppConfig.color_primary.darker(20%);
+        border-top-left-radius:  5px;
+        border-top-right-radius: 5px;
+        min-height: 480px;
+        min-width:  140px;
+
+        VerticalLayout {
+            padding: 3px;
+
+            for list-item[i] in AppConfig.list-items : ListItemPanel {
+                completed: list-item.completed;
+                description: list-item.description;
+                id: i;
+            }
+        }
+    }
+
     export component App inherits Window {
         min-width: 480px;
         max-width: 600px;
-        background: grey.darker(90%);
+        background: AppConfig.color_primary.darker(90%);
 
         VerticalBox {
             // List items live here.
-            Rectangle {
-                background: grey.darker(20%);
-                min-height: 480px;
-                min-width:  140px;
-
-                border-top-left-radius: 5px;
-                border-top-right-radius: 5px;
-
-                VerticalLayout {
-                    padding: 3px;
-
-                    for list-item[i] in AppConfig.list-items : Rectangle {
-                        padding: 5px;
-                        Rectangle {
-                            height: parent.height - (parent.height * 8%);
-                            background: grey.darker(37%);
-
-                            border-radius: 5px;
-                            border-color: #75abe6;
-                            border-width: 1px;
-                            // Helps make selection of individual
-                            // items more pronounced.
-                            touch_area := TouchArea{}
-                            drop-shadow-blur: touch-area.has-hover ? 10px : 3px;
-                            drop-shadow-color: touch-area.has-hover ? grey.darker(87%) : grey.darker(50%);
-                            drop-shadow-offset-y: touch-area.has-hover ? 5px : 1px;
-                            animate drop-shadow-blur {
-                                duration: 100ms;
-                                easing: ease-out;
-                            }
-
-                            // Handles the interace for this list
-                            // item.
-                            HorizontalBox {
-                                CheckBox {
-                                    checked: list-item.completed;
-                                    toggled => {
-                                        list-item.completed = self.checked;
-                                        AppLogic.dump_list_items();
-                                    }
-                                }
-                                Text{
-                                    text: list-item.description;
-                                    font-size: AppConfig.font-size;
-                                    color: lightgrey;
-                                    horizontal-alignment: left;
-                                    vertical-alignment: center;
-                                    overflow: elide;
-                                }
-                                Button {
-                                    text: "-";
-                                    width: 30px;
-                                    clicked => {
-                                        AppLogic.pop_list_item(i);
-                                        AppLogic.dump_list_items();
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
+            ItemPanel {}
             // Items created here.
-            Rectangle {
-                background: grey;
-                height: AppConfig.font-size + (AppConfig.font-size * 300%);
-
-                border-bottom-left-radius: 5px;
-                border-bottom-right-radius: 5px;
-
-                todo-form := HorizontalBox {
-                    callback create_new_item();
-                    add_button  := Button{
-                        text: "+";
-                        width: self.height;
-                        // Only allow users to add a new item
-                        // if the text input is not empty.
-                        enabled: txt-desc.text != "";
-                        clicked => { create_new_item(); }
-                    }
-
-                    txt_desc := Rectangle {
-                        in-out property <string> text;
-                        background: white;
-
-                        border-radius: 5px;
-                        border-color: #75abe6;
-                        border-width: 2px;
-
-                        TextInput {
-                            color: grey;
-                            font-size: AppConfig.font-size;
-                            padding-right: 20px;
-                            text <=> parent.text;
-                            vertical-alignment: center;
-
-                            x: parent.x - 50px;
-                            width: parent.width - 12px;
-                        }
-                    }
-
-                    create_new_item => {
-                        if (txt-desc.text != "") {
-                            AppLogic.put_list_item(0, {completed: false, description: txt-desc.text });
-                            txt-desc.text = "";
-                            AppLogic.dump_list_items();
-                        }
-                    }
-                }
-            }
+            FormPanel {}
         }
     }
 }
