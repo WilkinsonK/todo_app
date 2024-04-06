@@ -142,6 +142,14 @@ slint::slint! {
         VerticalLayout {
             padding: 3px;
 
+            Text {
+                visible: AppConfig.list-items.length < 1;
+                color:   AppConfig.color_secondary;
+                text:    "Nothing TODO!";
+                horizontal-alignment: center;
+                vertical-alignment:   center;
+            }
+
             for list-item[i] in AppConfig.list-items : ListItemPanel {
                 completed: list-item.completed;
                 description: list-item.description;
