@@ -146,7 +146,7 @@ slint::slint! {
         background: AppConfig.color_primary.darker(20%);
         border-top-left-radius:  5px;
         border-top-right-radius: 5px;
-        min-height: 480px;
+        min-height: 140px;
         min-width:  140px;
 
         ScrollView {
