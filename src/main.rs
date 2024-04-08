@@ -182,6 +182,8 @@ slint::slint! {
     }
 
     export component App inherits Window {
+        title: "TODOer";
+        icon:  @image-url("assets/TODOer.png");
         min-width: 480px;
         max-width: 600px;
         background: AppConfig.color_primary.darker(90%);
