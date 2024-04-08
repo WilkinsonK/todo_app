@@ -150,13 +150,20 @@ slint::slint! {
         min-width:  140px;
 
         ScrollView {
+            property <length> height_offset: 2px;
+            property <length> width_offset:  4px;
+
             padding: 3px;
             height:  parent.height;
             width:   parent.width;
-            viewport-height: (AppConfig.list-items.length * 48px);
+            viewport-height: (AppConfig.list-items.length * 48px) + 2px;
             viewport-width:  parent.width;
 
             VerticalLayout {
+                width: parent.width * 96%;
+                x:     parent.x + 4px;
+                y:     parent.y + 2px;
+
                 for list-item[i] in AppConfig.list-items : ListItemPanel {
                     completed: list-item.completed;
                     description: list-item.description;
