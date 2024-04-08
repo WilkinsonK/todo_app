@@ -12,5 +12,8 @@ done at a later time.
 
 To run the application all that needs to be done is to use `cargo`.
 ```sh
-$ cargo run .
+$ cargo run [TODO_FILE]
 ```
+
+TODOer optionally accepts a TODO file location to load tasks from, making it
+easier to organize TODO tasks.
