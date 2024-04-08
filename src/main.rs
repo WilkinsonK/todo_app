@@ -1,3 +1,4 @@
+use std::env;
 use std::fs;
 
 use resolve_path::PathResolveExt;
@@ -6,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use slint::Model;
 
 slint::slint! {
-    import {HorizontalBox, Button, TextEdit, VerticalBox, CheckBox} from "std-widgets.slint";
+    import {HorizontalBox, Button, TextEdit, VerticalBox, CheckBox, ScrollView} from "std-widgets.slint";
 
     export struct ListItem {
         completed:   bool,
@@ -65,9 +66,13 @@ slint::slint! {
         out property    <color>      color_primary:   grey;
         out property    <color>      color_secondary: lightgrey;
         out property    <color>      color_tertiary:  #75abe6;
+        in property     <string>     data-path: ".todo.dat";
         out property    <length>     font-size: 14px;
-        out property    <string>     data_path: ".todo.dat";
-        in-out property <[ListItem]> list-items: [];
+        in property     <[ListItem]> list-items: [
+            { completed: false, description: "Take Dog for Walk" },
+            { completed: false, description: "Write Research Paper"},
+            { completed: false, description: "Make Grocery List"},
+        ];
     }
 
     export global AppLogic {
@@ -124,7 +129,12 @@ slint::slint! {
 
             create_new_item => {
                 if (txt-desc.text != "") {
-                    AppLogic.put_list_item(0, {completed: false, description: txt-desc.text });
+                    AppLogic.put_list_item(
+                        0,
+                        {
+                            completed: false,
+                            description: txt-desc.text 
+                        });
                     txt-desc.text = "";
                     AppLogic.dump_list_items();
                 }
@@ -139,22 +149,28 @@ slint::slint! {
         min-height: 480px;
         min-width:  140px;
 
-        VerticalLayout {
+        ScrollView {
             padding: 3px;
+            height:  parent.height;
+            width:   parent.width;
+            viewport-height: (AppConfig.list-items.length * 48px);
+            viewport-width:  parent.width;
 
-            for list-item[i] in AppConfig.list-items : ListItemPanel {
-                completed: list-item.completed;
-                description: list-item.description;
-                id: i;
+            VerticalLayout {
+                for list-item[i] in AppConfig.list-items : ListItemPanel {
+                    completed: list-item.completed;
+                    description: list-item.description;
+                    id: i;
+                }
             }
+        }
 
-            Text {
-                visible: AppConfig.list-items.length < 1;
-                color:   AppConfig.color_secondary;
-                text:    "Nothing TODO!";
-                horizontal-alignment: center;
-                vertical-alignment:   center;
-            }
+        Text {
+            visible: AppConfig.list-items.length < 1;
+            color:   AppConfig.color_secondary;
+            text:    "Nothing TODO!";
+            horizontal-alignment: center;
+            vertical-alignment:   center;
         }
     }
 
@@ -239,6 +255,7 @@ fn callback_declare_load_list_items(app: &App) {
             .iter()
             .map(|li| li.to_owned().into())
             .collect();
+
         let items_model = std::rc::Rc::new(slint::VecModel::from(items));
         cfg.set_list_items(items_model.into());
     });
@@ -295,6 +312,18 @@ fn callback_declare_put_list_item(app: &App) {
 
 fn main() -> anyhow::Result<()> {
     let app = App::new()?;
+    let mut args = env::args();
+    args.next();
+
+    // Allow calling from the command line to
+    // load a specified TODO file.
+    let cfg = app.global::<AppConfig>();
+    let pth = args
+        .next()
+        .unwrap_or_else(|| cfg.get_data_path().into())
+        .into();
+    cfg.set_data_path(pth);
+
     callback_declare_dump_list_items(&app);
     callback_declare_load_list_items(&app);
     callback_declare_pop_list_item(&app);
