@@ -1,4 +1,4 @@
-# TODO App #
+![icon](./assets/TODOer.png) # TODO App #
 Yes, everyone has one. Everybody has done it, but I had to start
 somewhere.
 
